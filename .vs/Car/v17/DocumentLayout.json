@@ -7,7 +7,7 @@
       "RelativeMoniker": "D:0:0:{E390F8B0-5B5E-7D46-FA61-627C3D3384D7}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\sensorscript.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{E390F8B0-5B5E-7D46-FA61-627C3D3384D7}|Assembly-CSharp.csproj|c:\\programming\\unity\\car\\assets\\scripts\\maincarscript.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "AbsoluteMoniker": "D:0:0:{E390F8B0-5B5E-7D46-FA61-627C3D3384D7}|Assembly-CSharp.csproj|C:\\Programming\\Unity\\car\\assets\\scripts\\maincarscript.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{E390F8B0-5B5E-7D46-FA61-627C3D3384D7}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\maincarscript.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
@@ -28,7 +28,7 @@
               "RelativeDocumentMoniker": "Assets\\Scripts\\SensorScript.cs",
               "ToolTip": "C:\\Programming\\Unity\\car\\Assets\\Scripts\\SensorScript.cs",
               "RelativeToolTip": "Assets\\Scripts\\SensorScript.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACIAAABCAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACIAAAAvAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-12-12T19:04:51.415Z",
               "EditorCaption": ""
