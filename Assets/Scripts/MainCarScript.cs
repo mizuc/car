@@ -5,50 +5,34 @@ using UnityEngine;
 public class MainCarScript : MonoBehaviour
 {
     private Material carMaterial;
+    private SensorScript sensorScript;
 
     public float moveSpeed = 1f; // 移動速度
     public float rotationSpeed = 90f; // 回転速度
+
+    int mode = 0;
 
     void Start()
     {
         GetComponent<Rigidbody2D>().gravityScale = 0f;
 
-        // メッシュを生成
-        Mesh mesh = new Mesh();
-
-        // 頂点を設定
-        Vector3[] vertices = new Vector3[4]
+        setCarMesh();
+        
+        // センサーのメッシュと当たり判定を定義
+        Vector2[] sensorVertices = new Vector2[3]
         {
-            new Vector3(-0.1f, -0.15f, 0), //左下
-            new Vector3(0.1f, -0.15f, 0),  //右下
-            new Vector3(-0.1f, 0.15f, 0),  //左上
-            new Vector3(0.1f, 0.15f, 0)    //右上
+        new Vector2(0, 0),          //左下
+        new Vector2(-0.1f, 0.2f),   //右下
+        new Vector2(0.1f, 0.2f),    //左上
         };
-        mesh.vertices = vertices;
-
-        // 三角形を定義 (面)
-        int[] triangles = new int[6]
-        {
-            0, 2, 1, // 1つ目の三角形
-            2, 3, 1  // 2つ目の三角形
-        };
-        mesh.triangles = triangles;
-
-
-        // メッシュをMeshFilterに設定
-        GetComponent<MeshFilter>().mesh = mesh;
-
-        // マテリアルを作成
-        carMaterial = new Material(Shader.Find("Unlit/Color"));
-        carMaterial.color = Color.white;
-
-        // 作成したマテリアルをMeshRendererに設定
-        GetComponent<MeshRenderer>().material = carMaterial;
+        sensorScript = GetComponentInChildren<SensorScript>();
+        sensorScript.setSensorMesh(sensorVertices);
     }
-
 
     void Update()
     {
+        mode = 1;
+
         if (Input.GetKey(KeyCode.W)) // Wキーで前進
         {
             transform.Translate(Vector3.up * moveSpeed * Time.deltaTime);
@@ -72,8 +56,39 @@ public class MainCarScript : MonoBehaviour
     {
         carMaterial.color = Color.red;
     }
+
     public void SensorExit()
     {
         carMaterial.color = Color.white;
+    }
+
+    void setCarMesh()
+    {
+        Mesh mesh = new Mesh();
+
+        // 頂点を設定
+        Vector3[] vertices = new Vector3[4]
+        {
+            new Vector3(-0.1f, -0.15f, 0), //左下
+            new Vector3(0.1f, -0.15f, 0),  //右下
+            new Vector3(-0.1f, 0.15f, 0),  //左上
+            new Vector3(0.1f, 0.15f, 0)    //右上
+        };
+        mesh.vertices = vertices;
+
+        // 面を定義
+        int[] triangles = new int[6]
+        {
+            0, 2, 1, // 1つ目の三角形
+            2, 3, 1  // 2つ目の三角形
+        };
+        mesh.triangles = triangles;
+
+        GetComponent<MeshFilter>().mesh = mesh;
+
+        carMaterial = new Material(Shader.Find("Unlit/Color"));
+        carMaterial.color = Color.white;
+
+        GetComponent<MeshRenderer>().material = carMaterial;
     }
 }

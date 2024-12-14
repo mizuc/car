@@ -5,30 +5,48 @@ public class SensorScript : MonoBehaviour
     private Material sensorMaterial;
     private MainCarScript mainCarScript;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        GetComponent<Rigidbody2D>().gravityScale = 0f;
-
         mainCarScript = GetComponentInParent<MainCarScript>();
+    }
 
-        // メッシュを生成
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        mainCarScript.SensorEnter();
+    }
+
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        mainCarScript.SensorExit();
+    }
+
+    public void setSensorMesh(Vector2[] v2)
+    {
+        // 引数で当たり判定を設定
+        GetComponent<PolygonCollider2D>().points = v2;
+
+        // 引数のVector3版を定義
+        Vector3[] v3 = new Vector3[v2.Length];
+        for (int i = 0; i < v2.Length; i++)
+        {
+            v3[i] = new Vector3(v2[i][0], v2[i][1], 0);
+        }
+
         Mesh mesh = new Mesh();
 
         // 頂点を設定
-        Vector3[] vertices = new Vector3[3]
-        {
-        new Vector3(0, 0, 0), //左下
-        new Vector3(-0.1f, 1, 0),  //右下
-        new Vector3(0.1f, 1, 0),  //左上
-        };
-        mesh.vertices = vertices;
+        mesh.vertices = v3;
 
-        // 三角形を定義 (面)
-        int[] triangles = new int[3]
+        // 面を定義
+        int[] triangles = new int[(v2.Length - 2) * 3];
+        for (int i = 0; i < v2.Length - 2; i++)
         {
-            0, 1, 2 // 1つ目の三角形
-        };
+            triangles[i * 3] = 0;
+            triangles[i * 3 + 1] = i + 1;
+            triangles[i * 3 + 2] = i + 2;
+        }
+
         mesh.triangles = triangles;
 
         // メッシュをMeshFilterに設定
@@ -42,19 +60,8 @@ public class SensorScript : MonoBehaviour
         GetComponent<MeshRenderer>().material = sensorMaterial;
     }
 
-    // Update is called once per frame
-    void Update()
+    void setSensorRotation(float angle)
     {
-        
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        mainCarScript.SensorEnter();
-    }
-
-    private void OnTriggerExit2D(Collider2D collision)
-    {
-        mainCarScript.SensorExit();
+        transform.localRotation = Quaternion.Euler(0f, 0f, angle);
     }
 }
