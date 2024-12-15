@@ -10,7 +10,19 @@ public class MainCarScript : MonoBehaviour
     public float moveSpeed = 1f; // 移動速度
     public float rotationSpeed = 90f; // 回転速度
 
-    int mode = 0;
+    enum mode
+    {
+        forward = 0,
+        backward = 1,
+        right = 2,
+        left = 3,
+        stop = 4,
+        servo = 5,
+        control = 100
+
+    };
+
+    mode m = mode.control;
 
     void Start()
     {
@@ -31,24 +43,39 @@ public class MainCarScript : MonoBehaviour
 
     void Update()
     {
-        mode = 1;
+        switch (m)
+        {
+            case mode.forward:
+                break;
+            case mode.backward:
+                break;
+            case mode.right:
+                break;
+            case mode.left:
+                break;
+            case mode.stop:
+                break;
+            case mode.servo:
+                break;
+            case mode.control:
+                if (Input.GetKey(KeyCode.W)) // Wキーで前進
+                {
+                    transform.Translate(Vector3.up * moveSpeed * Time.deltaTime);
+                }
+                if (Input.GetKey(KeyCode.S)) // Sキーで後進
+                {
+                    transform.Translate(Vector3.up * -moveSpeed * Time.deltaTime);
+                }
 
-        if (Input.GetKey(KeyCode.W)) // Wキーで前進
-        {
-            transform.Translate(Vector3.up * moveSpeed * Time.deltaTime);
-        }
-        if (Input.GetKey(KeyCode.S)) // Sキーで後進
-        {
-            transform.Translate(Vector3.up * -moveSpeed * Time.deltaTime);
-        }
-
-        if (Input.GetKey(KeyCode.A)) // Aキーで左回転
-        {
-            transform.Rotate(Vector3.forward * rotationSpeed * Time.deltaTime);
-        }
-        if (Input.GetKey(KeyCode.D)) // Dキーで右回転
-        {
-            transform.Rotate(Vector3.forward * -rotationSpeed * Time.deltaTime);
+                if (Input.GetKey(KeyCode.A)) // Aキーで左回転
+                {
+                    transform.Rotate(Vector3.forward * rotationSpeed * Time.deltaTime);
+                }
+                if (Input.GetKey(KeyCode.D)) // Dキーで右回転
+                {
+                    transform.Rotate(Vector3.forward * -rotationSpeed * Time.deltaTime);
+                }
+                break;
         }
     }
 
