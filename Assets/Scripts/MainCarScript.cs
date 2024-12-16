@@ -7,22 +7,14 @@ public class MainCarScript : MonoBehaviour
     private Material carMaterial;
     private SensorScript sensorScript;
 
-    public float moveSpeed = 1f; // ˆÚ“®‘¬“x
-    public float rotationSpeed = 90f; // ‰ñ“]‘¬“x
+    public float moveSpeed = 1f; // è»Šã®ã‚¹ãƒ”ãƒ¼ãƒ‰
+    public float rotationSpeed = 90f; // å›è»¢ã™ã‚‹ã‚¹ãƒ”ãƒ¼ãƒ‰
 
-    enum mode
-    {
-        forward = 0,
-        backward = 1,
-        right = 2,
-        left = 3,
-        stop = 4,
-        servo = 5,
-        control = 100
-
-    };
-
-    mode m = mode.control;
+    public float servoAngle = 90f;
+    public float obstacleDetectDistance = 1f;  // 20cm
+    public Transform sensorTransform;             // sensorã®åº§æ¨™
+    public float carSpeed = 1f;
+    private bool first_is = true;
 
     void Start()
     {
@@ -30,52 +22,44 @@ public class MainCarScript : MonoBehaviour
 
         setCarMesh();
         
-        // ƒZƒ“ƒT[‚ÌƒƒbƒVƒ…‚Æ“–‚½‚è”»’è‚ğ’è‹`
+        // sensorã®é ‚ç‚¹
         Vector2[] sensorVertices = new Vector2[3]
         {
-        new Vector2(0, 0),          //¶‰º
-        new Vector2(-0.1f, 0.2f),   //‰E‰º
-        new Vector2(0.1f, 0.2f),    //¶ã
+        new Vector2(0, 0),
+        new Vector2(-0.1f, obstacleDetectDistance),
+        new Vector2(0.1f, obstacleDetectDistance)
         };
         sensorScript = GetComponentInChildren<SensorScript>();
         sensorScript.setSensorMesh(sensorVertices);
+
+        sensorTransform = GetComponentInChildren<Transform>();
     }
 
     void Update()
     {
-        switch (m)
+        if (true)
         {
-            case mode.forward:
-                break;
-            case mode.backward:
-                break;
-            case mode.right:
-                break;
-            case mode.left:
-                break;
-            case mode.stop:
-                break;
-            case mode.servo:
-                break;
-            case mode.control:
-                if (Input.GetKey(KeyCode.W)) // WƒL[‚Å‘Oi
-                {
-                    transform.Translate(Vector3.up * moveSpeed * Time.deltaTime);
-                }
-                if (Input.GetKey(KeyCode.S)) // SƒL[‚ÅŒãi
-                {
-                    transform.Translate(Vector3.up * -moveSpeed * Time.deltaTime);
-                }
+            StartCoroutine(ObstacleAvoidance()); // ã‚³ãƒ«ãƒ¼ãƒãƒ³ã§å®Ÿè¡Œ
+        }
+        else
+        {
+            if (Input.GetKey(KeyCode.W))
+            {
+                transform.Translate(Vector3.up * moveSpeed * Time.deltaTime);
+            }
+            if (Input.GetKey(KeyCode.S))
+            {
+                transform.Translate(Vector3.up * -moveSpeed * Time.deltaTime);
+            }
 
-                if (Input.GetKey(KeyCode.A)) // AƒL[‚Å¶‰ñ“]
-                {
-                    transform.Rotate(Vector3.forward * rotationSpeed * Time.deltaTime);
-                }
-                if (Input.GetKey(KeyCode.D)) // DƒL[‚Å‰E‰ñ“]
-                {
-                    transform.Rotate(Vector3.forward * -rotationSpeed * Time.deltaTime);
-                }
-                break;
+            if (Input.GetKey(KeyCode.A))
+            {
+                transform.Rotate(Vector3.forward * rotationSpeed * Time.deltaTime);
+            }
+            if (Input.GetKey(KeyCode.D))
+            {
+                transform.Rotate(Vector3.forward * -rotationSpeed * Time.deltaTime);
+            }
         }
     }
 
@@ -93,21 +77,21 @@ public class MainCarScript : MonoBehaviour
     {
         Mesh mesh = new Mesh();
 
-        // ’¸“_‚ğİ’è
+        // é ‚ç‚¹ã‚’è¨­å®š
         Vector3[] vertices = new Vector3[4]
         {
-            new Vector3(-0.1f, -0.15f, 0), //¶‰º
-            new Vector3(0.1f, -0.15f, 0),  //‰E‰º
-            new Vector3(-0.1f, 0.15f, 0),  //¶ã
-            new Vector3(0.1f, 0.15f, 0)    //‰Eã
+            new Vector3(-0.1f, -0.15f, 0),
+            new Vector3(0.1f, -0.15f, 0),
+            new Vector3(-0.1f, 0.15f, 0),
+            new Vector3(0.1f, 0.15f, 0)
         };
         mesh.vertices = vertices;
 
-        // –Ê‚ğ’è‹`
+        // é¢ã‚’è¨­å®š
         int[] triangles = new int[6]
         {
-            0, 2, 1, // 1‚Â–Ú‚ÌOŠpŒ`
-            2, 3, 1  // 2‚Â–Ú‚ÌOŠpŒ`
+            0, 2, 1,
+            2, 3, 1
         };
         mesh.triangles = triangles;
 
@@ -117,5 +101,118 @@ public class MainCarScript : MonoBehaviour
         carMaterial.color = Color.white;
 
         GetComponent<MeshRenderer>().material = carMaterial;
+    }
+
+    private IEnumerator ObstacleAvoidance()
+    {
+        if (first_is)
+        {
+            servoAngle = 90f;
+            sensorTransform.localRotation = Quaternion.Euler(0f, 0f, -servoAngle); // æœ€åˆã ã‘å‘ãã‚’90åº¦ã«ã™ã‚‹
+
+            first_is = false;
+            yield return null; //1ãƒ•ãƒ¬ãƒ¼ãƒ é£›ã°ã™
+        }
+
+        float distance = GetDistance();
+        Debug.Log(distance);
+
+        if (distance <= obstacleDetectDistance)
+        {
+            StartCoroutine(CarMotionControl("stop", 0));
+            for (int i = 1; i <= 5; i += 2)
+            {
+                servoAngle = 30 * i;
+                sensorTransform.localRotation = Quaternion.Euler(0f, 0f, -servoAngle);
+
+                yield return new WaitForSeconds(0.1f); // 100mså¾…ã¤
+                distance = GetDistance();
+
+                if (distance <= obstacleDetectDistance)
+                {
+                    StartCoroutine(CarMotionControl("forward", 0));
+                    if (i == 5)
+                    {
+                        //CarMotionControl("backward", 150);
+                        StartCoroutine(CarMotionControl("forward", 0.5f)); // å‰é€² 0.5ç§’é–“å®Ÿè¡Œ
+                        //yield return new WaitForSeconds(0.5f); // 500msï¿½Ò‹@
+                        //CarMotionControl("right", 50);
+                        StartCoroutine(CarMotionControl("forward", 0.05f)); // å³ã«å›è»¢ 0.05ç§’é–“å®Ÿè¡Œ
+                        //yield return new WaitForSeconds(0.05f); // 50msï¿½Ò‹@
+
+                        first_is = true;
+                    }
+                }
+                else
+                {
+                    if (i == 1)
+                    {
+                        //CarMotionControl("right", 50);
+                        StartCoroutine(CarMotionControl("right", 0.05f)); // å³ã«å›è»¢ 0.05ç§’é–“å®Ÿè¡Œ
+                    }
+                    else if (i == 3)
+                    {
+                        StartCoroutine(CarMotionControl("forward", 0.05f)); // å‰é€² 0.05ç§’é–“å®Ÿè¡Œ
+                    }
+                    else if (i == 5)
+                    {
+                        //CarMotionControl("left", 50);
+                        StartCoroutine(CarMotionControl("left", 0.05f)); // å·¦ã«å›è»¢ 0.05ç§’é–“å®Ÿè¡Œ
+                    }
+
+                    //yield return new WaitForSeconds(0.05f); // 50ms
+
+                    first_is = true;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            StartCoroutine(CarMotionControl("forward", 0.05f)); // å‰é€² 0.05ç§’é–“å®Ÿè¡Œ
+        }
+    }
+
+    float GetDistance()
+    {
+        int layerMask = ~LayerMask.GetMask("Ignore Raycast"); // IgnoreRaycast ãƒ¬ã‚¤ãƒ¤ãƒ¼ã‚’ç„¡è¦–
+        RaycastHit2D hit = Physics2D.Raycast(sensorTransform.position, sensorTransform.up, Mathf.Infinity, layerMask);
+        Debug.DrawRay(sensorTransform.position, sensorTransform.up * 1f, Color.red); // 1mã®é•·ã•ã§èµ¤ã„ãƒ¬ã‚¤ã‚’æç”»
+        if (hit.collider != null)
+        {
+            return hit.distance;
+        }
+        return Mathf.Infinity; // ä½•ã‚‚ãƒ’ãƒƒãƒˆã—ãªã‹ã£ãŸå ´åˆã¯ç„¡é™å¤§
+    }
+
+    IEnumerator CarMotionControl(string direction, float duration)
+    {
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        switch (direction)
+        {
+            case "forward":
+                rb.linearVelocity = transform.up * carSpeed;
+                break;
+            case "backward":
+                rb.linearVelocity = -transform.up * carSpeed;
+                break;
+            case "right":
+                rb.angularVelocity = -rotationSpeed * Mathf.Deg2Rad;
+                break;
+            case "left":
+                rb.angularVelocity = rotationSpeed * Mathf.Deg2Rad;
+                break;
+            case "stop":
+                rb.linearVelocity = Vector2.zero;
+                rb.angularVelocity = 0f;
+                break;
+        }
+
+        // æŒ‡å®šã•ã‚ŒãŸç§’æ•°ã ã‘å¾…æ©Ÿ
+        yield return new WaitForSeconds(duration);
+
+        // å‹•ãã‚’åœæ­¢
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
     }
 }

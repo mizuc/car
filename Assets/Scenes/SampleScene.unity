@@ -132,7 +132,7 @@ GameObject:
   - component: {fileID: 389927602}
   - component: {fileID: 389927601}
   - component: {fileID: 389927600}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Sensor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -220,7 +220,7 @@ PolygonCollider2D:
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -283,7 +283,7 @@ GameObject:
   - component: {fileID: 450778555}
   - component: {fileID: 450778557}
   - component: {fileID: 450778556}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Car
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -309,7 +309,7 @@ Rigidbody2D:
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -445,6 +445,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 1
   rotationSpeed: 90
+  servoAngle: 90
+  obstacleDetectDistance: 1
+  sensorTransform: {fileID: 0}
+  carSpeed: 1
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
