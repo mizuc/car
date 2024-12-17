@@ -21,7 +21,7 @@ public class MainCarScript : MonoBehaviour
     void Start()
     {
         Time.fixedDeltaTime = 0.01f; // 1フレームを0.01秒とする
-        //Time.timeScale = 100f; // 100倍速で実行する
+        Time.timeScale = 100f; // 100倍速で実行する
         Application.targetFrameRate = -1; // フレームレート制限を解除
         QualitySettings.vSyncCount = 0;   // V-Syncを無効化
 
