@@ -446,7 +446,7 @@ MonoBehaviour:
   moveSpeed: 1
   rotationSpeed: 90
   servoAngle: 90
-  obstacleDetectDistance: 1
+  obstacleDetectDistance: 0.5
   sensorTransform: {fileID: 0}
   carSpeed: 1
 --- !u!1 &519420028

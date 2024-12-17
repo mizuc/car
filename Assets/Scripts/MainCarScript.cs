@@ -18,6 +18,8 @@ public class MainCarScript : MonoBehaviour
 
     void Start()
     {
+        Time.fixedDeltaTime = 0.01f; // 1フレームを0.01秒とする
+
         GetComponent<Rigidbody2D>().gravityScale = 0f;
 
         setCarMesh();
@@ -35,7 +37,7 @@ public class MainCarScript : MonoBehaviour
         sensorTransform = GetComponentInChildren<Transform>();
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (true)
         {
@@ -107,7 +109,7 @@ public class MainCarScript : MonoBehaviour
     {
         if (first_is)
         {
-            servoAngle = 90f;
+            servoAngle = 0f;
             sensorTransform.localRotation = Quaternion.Euler(0f, 0f, -servoAngle); // 最初だけ向きを90度にする
 
             first_is = false;
@@ -124,22 +126,18 @@ public class MainCarScript : MonoBehaviour
             {
                 servoAngle = 30 * i;
                 sensorTransform.localRotation = Quaternion.Euler(0f, 0f, -servoAngle);
+                yield return new WaitForSeconds(0.45f);
 
                 yield return new WaitForSeconds(0.1f); // 100ms待つ
                 distance = GetDistance();
 
                 if (distance <= obstacleDetectDistance)
                 {
-                    StartCoroutine(CarMotionControl("forward", 0));
+                    StartCoroutine(CarMotionControl("stop", 0.01f));
                     if (i == 5)
                     {
-                        //CarMotionControl("backward", 150);
-                        StartCoroutine(CarMotionControl("forward", 0.5f)); // 前進 0.5秒間実行
-                        //yield return new WaitForSeconds(0.5f); // 500ms�ҋ@
-                        //CarMotionControl("right", 50);
-                        StartCoroutine(CarMotionControl("forward", 0.05f)); // 右に回転 0.05秒間実行
-                        //yield return new WaitForSeconds(0.05f); // 50ms�ҋ@
-
+                        StartCoroutine(CarMotionControl("backward", 0.5f)); // 前進 0.5秒間実行
+                        StartCoroutine(CarMotionControl("right", 0.05f)); // 右に回転 0.05秒間実行
                         first_is = true;
                     }
                 }
@@ -147,7 +145,6 @@ public class MainCarScript : MonoBehaviour
                 {
                     if (i == 1)
                     {
-                        //CarMotionControl("right", 50);
                         StartCoroutine(CarMotionControl("right", 0.05f)); // 右に回転 0.05秒間実行
                     }
                     else if (i == 3)
@@ -156,12 +153,8 @@ public class MainCarScript : MonoBehaviour
                     }
                     else if (i == 5)
                     {
-                        //CarMotionControl("left", 50);
                         StartCoroutine(CarMotionControl("left", 0.05f)); // 左に回転 0.05秒間実行
                     }
-
-                    //yield return new WaitForSeconds(0.05f); // 50ms
-
                     first_is = true;
                     break;
                 }
@@ -169,7 +162,7 @@ public class MainCarScript : MonoBehaviour
         }
         else
         {
-            StartCoroutine(CarMotionControl("forward", 0.05f)); // 前進 0.05秒間実行
+            StartCoroutine(CarMotionControl("forward", 0.01f)); // 前進 0.05秒間実行
         }
     }
 
