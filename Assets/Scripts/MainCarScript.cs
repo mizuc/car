@@ -4,75 +4,154 @@ using UnityEngine;
 
 public class MainCarScript : MonoBehaviour
 {
+    Rigidbody2D rb;
     private Material carMaterial;
-    private SensorScript sensorScript;
+    private Transform sensorTransform; // sensorの座標
 
-    public float moveSpeed = 1f; // 車のスピード
-    public float rotationSpeed = 90f; // 回転するスピード
-
-    public float servoAngle = 90f;
-    public float obstacleDetectDistance = 1f;  // 20cm
-    public Transform sensorTransform;             // sensorの座標
+    public float obstacleDetectDistance = 1f; // 100cm
     public float carSpeed = 1f;
+    public float rotationSpeed = 50000f; // 回転するスピード
+
+    private float servoAngle = 0;
     private bool first_is = true;
+    private bool isRunning = false;
+    
 
     void Start()
     {
         Time.fixedDeltaTime = 0.01f; // 1フレームを0.01秒とする
-
-        GetComponent<Rigidbody2D>().gravityScale = 0f;
-
-        setCarMesh();
-        
-        // sensorの頂点
-        Vector2[] sensorVertices = new Vector2[3]
-        {
-        new Vector2(0, 0),
-        new Vector2(-0.1f, obstacleDetectDistance),
-        new Vector2(0.1f, obstacleDetectDistance)
-        };
-        sensorScript = GetComponentInChildren<SensorScript>();
-        sensorScript.setSensorMesh(sensorVertices);
-
-        sensorTransform = GetComponentInChildren<Transform>();
+        //Time.timeScale = 100f; // 100倍速で実行する
+        Application.targetFrameRate = -1; // フレームレート制限を解除
+        QualitySettings.vSyncCount = 0;   // V-Syncを無効化
+        rb = GetComponent<Rigidbody2D>();
+        rb.gravityScale = 0f; //重力を0にする
+        setCarMesh(); //車の見た目と当たり判定を定義
+        sensorTransform = GetComponentInChildren<Transform>(); //センサーの位置を取得
     }
 
     void FixedUpdate()
     {
-        if (true)
+        if (!isRunning)
         {
-            StartCoroutine(ObstacleAvoidance()); // コルーチンで実行
-        }
-        else
-        {
-            if (Input.GetKey(KeyCode.W))
-            {
-                transform.Translate(Vector3.up * moveSpeed * Time.deltaTime);
-            }
-            if (Input.GetKey(KeyCode.S))
-            {
-                transform.Translate(Vector3.up * -moveSpeed * Time.deltaTime);
-            }
-
-            if (Input.GetKey(KeyCode.A))
-            {
-                transform.Rotate(Vector3.forward * rotationSpeed * Time.deltaTime);
-            }
-            if (Input.GetKey(KeyCode.D))
-            {
-                transform.Rotate(Vector3.forward * -rotationSpeed * Time.deltaTime);
-            }
+            isRunning = true;
+            StartCoroutine(ObstacleAvoidance());
         }
     }
 
-    public void SensorEnter()
+    private IEnumerator ObstacleAvoidance()
     {
-        carMaterial.color = Color.red;
+        if (first_is)
+        {
+            servoAngle = 0f;
+            first_is = false;
+            //yield return null; //1フレーム飛ばす
+            yield return WaitForFixedFrames(1); // 1フレーム飛ばす
+        }
+
+        float distance = GetDistance(servoAngle, obstacleDetectDistance);
+
+        if (distance <= obstacleDetectDistance) // 近いなら
+        {
+            yield return StartCoroutine(CarMotionControl("stop", 0)); //0frame待つ 意味ある?
+            for (int i = -2; i <= 2; i += 2)
+            {
+                servoAngle = 30 * i; // -60, 0, 60
+                yield return WaitForFixedFrames(45); //45frames, 450ms待つ
+
+                yield return WaitForFixedFrames(10); //10frames, 100ms待つ
+
+                distance = GetDistance(servoAngle, obstacleDetectDistance);
+
+                if (distance <= obstacleDetectDistance) // 近いなら
+                {
+                    yield return StartCoroutine(CarMotionControl("stop", 1));
+                    if (i == 2)
+                    {
+                        yield return StartCoroutine(CarMotionControl("backward", 50)); // 前進 0.5秒間実行
+                        yield return StartCoroutine(CarMotionControl("right", 5)); // 右に回転 0.05秒間実行
+                        first_is = true;
+                    }
+                }
+                else
+                {
+                    if (i == -2)
+                    {
+                        yield return StartCoroutine(CarMotionControl("right", 5)); // 右に回転 0.05秒間実行
+                    }
+                    else if (i == 0)
+                    {
+                        yield return StartCoroutine(CarMotionControl("forward", 5)); // 前進 0.05秒間実行
+                    }
+                    else if (i == 2)
+                    {
+                        yield return StartCoroutine(CarMotionControl("left", 5)); // 左に回転 0.05秒間実行
+                    }
+                    first_is = true;
+                    break;
+                }
+            }
+        }
+        else // 遠いなら
+        {
+            yield return StartCoroutine(CarMotionControl("forward", 1)); // 前進 0.01秒間実行
+        }
+        isRunning = false;
     }
 
-    public void SensorExit()
+    float GetDistance(float length, float dir)
     {
-        carMaterial.color = Color.white;
+        int layerMask = ~LayerMask.GetMask("Ignore Raycast");
+
+        // dirを基準に方向を計算（0度を正面として角度を回転）
+        Vector2 rayDirection = Quaternion.Euler(0, 0, dir) * sensorTransform.up;
+        RaycastHit2D hit = Physics2D.Raycast(sensorTransform.position, rayDirection, Mathf.Infinity, layerMask);
+        // Rayを視覚化
+        Debug.DrawRay(sensorTransform.position, rayDirection * length, Color.red);
+
+        if (hit.collider != null)
+        {
+            return hit.distance;
+        }
+        return Mathf.Infinity;
+    }
+
+    IEnumerator CarMotionControl(string direction, int frameCount)
+    {
+        // 物理的に動き続ける処理と、frameCountの時間待つ処理を並列で実行
+        switch (direction)
+        {
+            case "forward":
+                rb.linearVelocity = transform.up * carSpeed;
+                break;
+            case "backward":
+                rb.linearVelocity = -transform.up * carSpeed;
+                break;
+            case "right":
+                rb.angularVelocity = rotationSpeed * Mathf.Deg2Rad;
+                break;
+            case "left":
+                rb.angularVelocity = -rotationSpeed * Mathf.Deg2Rad;
+                break;
+            case "stop":
+                rb.linearVelocity = Vector2.zero;
+                rb.angularVelocity = 0f;
+                break;
+        }
+
+        // 指定されたframeCountだけ待機
+        yield return WaitForFixedFrames(frameCount); //1frame = 10ms
+
+        // 動きを停止
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+    }
+
+    IEnumerator WaitForFixedFrames(int frameCount)
+    {
+        for (int i = 0; i < frameCount; i++)
+        {
+            yield return new WaitForFixedUpdate();
+        }
     }
 
     void setCarMesh()
@@ -103,109 +182,5 @@ public class MainCarScript : MonoBehaviour
         carMaterial.color = Color.white;
 
         GetComponent<MeshRenderer>().material = carMaterial;
-    }
-
-    private IEnumerator ObstacleAvoidance()
-    {
-        if (first_is)
-        {
-            servoAngle = 0f;
-            sensorTransform.localRotation = Quaternion.Euler(0f, 0f, -servoAngle); // 最初だけ向きを90度にする
-
-            first_is = false;
-            yield return null; //1フレーム飛ばす
-        }
-
-        float distance = GetDistance();
-        Debug.Log(distance);
-
-        if (distance <= obstacleDetectDistance)
-        {
-            StartCoroutine(CarMotionControl("stop", 0));
-            for (int i = 1; i <= 5; i += 2)
-            {
-                servoAngle = 30 * i;
-                sensorTransform.localRotation = Quaternion.Euler(0f, 0f, -servoAngle);
-                yield return new WaitForSeconds(0.45f);
-
-                yield return new WaitForSeconds(0.1f); // 100ms待つ
-                distance = GetDistance();
-
-                if (distance <= obstacleDetectDistance)
-                {
-                    StartCoroutine(CarMotionControl("stop", 0.01f));
-                    if (i == 5)
-                    {
-                        StartCoroutine(CarMotionControl("backward", 0.5f)); // 前進 0.5秒間実行
-                        StartCoroutine(CarMotionControl("right", 0.05f)); // 右に回転 0.05秒間実行
-                        first_is = true;
-                    }
-                }
-                else
-                {
-                    if (i == 1)
-                    {
-                        StartCoroutine(CarMotionControl("right", 0.05f)); // 右に回転 0.05秒間実行
-                    }
-                    else if (i == 3)
-                    {
-                        StartCoroutine(CarMotionControl("forward", 0.05f)); // 前進 0.05秒間実行
-                    }
-                    else if (i == 5)
-                    {
-                        StartCoroutine(CarMotionControl("left", 0.05f)); // 左に回転 0.05秒間実行
-                    }
-                    first_is = true;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            StartCoroutine(CarMotionControl("forward", 0.01f)); // 前進 0.05秒間実行
-        }
-    }
-
-    float GetDistance()
-    {
-        int layerMask = ~LayerMask.GetMask("Ignore Raycast"); // IgnoreRaycast レイヤーを無視
-        RaycastHit2D hit = Physics2D.Raycast(sensorTransform.position, sensorTransform.up, Mathf.Infinity, layerMask);
-        Debug.DrawRay(sensorTransform.position, sensorTransform.up * 1f, Color.red); // 1mの長さで赤いレイを描画
-        if (hit.collider != null)
-        {
-            return hit.distance;
-        }
-        return Mathf.Infinity; // 何もヒットしなかった場合は無限大
-    }
-
-    IEnumerator CarMotionControl(string direction, float duration)
-    {
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
-        switch (direction)
-        {
-            case "forward":
-                rb.linearVelocity = transform.up * carSpeed;
-                break;
-            case "backward":
-                rb.linearVelocity = -transform.up * carSpeed;
-                break;
-            case "right":
-                rb.angularVelocity = -rotationSpeed * Mathf.Deg2Rad;
-                break;
-            case "left":
-                rb.angularVelocity = rotationSpeed * Mathf.Deg2Rad;
-                break;
-            case "stop":
-                rb.linearVelocity = Vector2.zero;
-                rb.angularVelocity = 0f;
-                break;
-        }
-
-        // 指定された秒数だけ待機
-        yield return new WaitForSeconds(duration);
-
-        // 動きを停止
-        rb.linearVelocity = Vector2.zero;
-        rb.angularVelocity = 0f;
     }
 }
