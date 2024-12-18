@@ -9,9 +9,11 @@ public class MainCarScript : MonoBehaviour
     private SensorScript sensorScript;
 
     public float timeScale = 100f;
+
+    // 乱数で決める変数
     public float obstacleDetectDistance = 1; // 1m
     public float carSpeed = 1;
-    public float rotationSpeed = 50000; // 回転するスピード
+    public float rotationSpeed = 60 * 1147.6333f; //68858 回転するスピード この値だとちょうど60度回る rotationSpeed:servoAngleDiff = 68858:60
     public float servoAngleDiff = 60;
 
     private float servoAngle = 0;
@@ -22,7 +24,7 @@ public class MainCarScript : MonoBehaviour
     void Start()
     {
         Time.fixedDeltaTime = 0.01f; // 1フレームを0.01秒とする
-        Time.timeScale = timeScale; // 100倍速で実行する
+        Time.timeScale = timeScale; // 倍速
         Application.targetFrameRate = -1; // フレームレート制限を解除
         QualitySettings.vSyncCount = 0;   // V-Syncを無効化
 
@@ -33,6 +35,8 @@ public class MainCarScript : MonoBehaviour
         sensorScript = GetComponentInChildren<SensorScript>();
         sensorScript.setSensorMesh(obstacleDetectDistance);
         sensorTransform = GetComponentInChildren<Transform>();
+
+        setRandom();
     }
 
     void FixedUpdate()
@@ -42,6 +46,14 @@ public class MainCarScript : MonoBehaviour
             isRunning = true;
             StartCoroutine(ObstacleAvoidance());
         }
+    }
+
+    private void setRandom()
+    {
+        obstacleDetectDistance = Random.Range(0.1f, 1); // 10cmから1mまでの間
+        carSpeed = Random.Range(0.1f, 2); // あとで計測
+        rotationSpeed = Random.Range(10, 90) * 1147.6333f; // 10°から90°の間
+        servoAngleDiff = Random.Range(10, 90); // 10°から90°の間
     }
 
     private IEnumerator ObstacleAvoidance()
