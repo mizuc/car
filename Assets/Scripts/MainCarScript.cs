@@ -8,10 +8,11 @@ public class MainCarScript : MonoBehaviour
     private Transform sensorTransform; // sensorの座標
     private SensorScript sensorScript;
 
+    public float timeScale = 100f;
     public float obstacleDetectDistance = 1; // 1m
     public float carSpeed = 1;
     public float rotationSpeed = 50000; // 回転するスピード
-    public float servoAngleDiff = 30;
+    public float servoAngleDiff = 60;
 
     private float servoAngle = 0;
     private bool first_is = true;
@@ -21,7 +22,7 @@ public class MainCarScript : MonoBehaviour
     void Start()
     {
         Time.fixedDeltaTime = 0.01f; // 1フレームを0.01秒とする
-        Time.timeScale = 100f; // 100倍速で実行する
+        Time.timeScale = timeScale; // 100倍速で実行する
         Application.targetFrameRate = -1; // フレームレート制限を解除
         QualitySettings.vSyncCount = 0;   // V-Syncを無効化
 
@@ -49,28 +50,25 @@ public class MainCarScript : MonoBehaviour
         {
             servoAngle = 0f;
             sensorScript.setSensorRotation(servoAngle);
-            yield return WaitForFixedFrames(45); // 450ms待つ センサーが回ってる時間
+            yield return WaitForFixedFrames(45); // 450ms待つ ServoMotorが回ってる時間
             first_is = false;
         }
 
         float distance = GetDistance(servoAngle, obstacleDetectDistance);
         if (distance <= obstacleDetectDistance) // 近いなら
         {
-            //yield return StartCoroutine(CarMotionControl("stop", 0)); //0frame待つ 意味ある?
-            for (int i = -2; i <= 2; i += 2)
+            for (int i = -1; i <= 1; i++)
             {
-                servoAngle = 30 * i; // -60, 0, 60
-                sensorScript.setSensorRotation(servoAngle);
-                yield return WaitForFixedFrames(45); //450ms待つ センサーが回ってる時間
-
-                yield return WaitForFixedFrames(10); //100ms待つ センサーが回ったのを止める時間
+                servoAngle = servoAngleDiff * i; // -servoAngleDiff, 0, servoAngleDiff
+                sensorScript.setSensorRotation(servoAngle); // sensorを回す
+                yield return WaitForFixedFrames(45); // 450ms待つ ServoMotorが回ってる時間
 
                 distance = GetDistance(servoAngle, obstacleDetectDistance);
 
                 if (distance <= obstacleDetectDistance) // 近いなら
                 {
                     yield return StartCoroutine(CarMotionControl("stop", 1));
-                    if (i == 2)
+                    if (i == 1)
                     {
                         yield return StartCoroutine(CarMotionControl("backward", 50));
                         yield return StartCoroutine(CarMotionControl("right", 5));
@@ -79,7 +77,7 @@ public class MainCarScript : MonoBehaviour
                 }
                 else
                 {
-                    if (i == -2)
+                    if (i == -1)
                     {
                         yield return StartCoroutine(CarMotionControl("right", 5));
                     }
@@ -87,7 +85,7 @@ public class MainCarScript : MonoBehaviour
                     {
                         yield return StartCoroutine(CarMotionControl("forward", 5));
                     }
-                    else if (i == 2)
+                    else if (i == 1)
                     {
                         yield return StartCoroutine(CarMotionControl("left", 5));
                     }
