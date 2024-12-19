@@ -12,9 +12,19 @@ public class MainCarScript : MonoBehaviour
 
     // 乱数で決める変数
     public float obstacleDetectDistance = 1; // 1m
-    public float carSpeed = 1;
-    public float rotationSpeed = 60 * 1147.6333f; //68858 回転するスピード この値だとちょうど60度回る rotationSpeed:servoAngleDiff = 68858:60
+    public float carSpeed = 1; //1秒で1m
+    public float rotationSpeed = 60 * 1147.6333f; // 回転するスピード この値だとちょうど60度回る rotationSpeed:servoAngleDiff = 68858:60
     public float servoAngleDiff = 60;
+
+    /*
+    forward
+    255:85
+    100:33.34
+
+    right
+    255:456.66
+    100:143
+     */
 
     private float servoAngle = 0;
     private bool first_is = true;
@@ -28,32 +38,38 @@ public class MainCarScript : MonoBehaviour
         Application.targetFrameRate = -1; // フレームレート制限を解除
         QualitySettings.vSyncCount = 0;   // V-Syncを無効化
 
+        //setRandom();
+
         rb = GetComponent<Rigidbody2D>();
         rb.gravityScale = 0f; //重力を0にする
-        setCarMesh(); //車の見た目と当たり判定を定義
+        setCarMesh(0.23f/2, 0.155f/2); //車の見た目と当たり判定を定義
 
         sensorScript = GetComponentInChildren<SensorScript>();
         sensorScript.setSensorMesh(obstacleDetectDistance);
         sensorTransform = GetComponentInChildren<Transform>();
-
-        setRandom();
     }
 
     void FixedUpdate()
     {
+        if (!isRunning) {
+            StartCoroutine(CarMotionControl("right", 100));
+            isRunning = true;
+        }
+        /*
         if (!isRunning)
         {
             isRunning = true;
             StartCoroutine(ObstacleAvoidance());
         }
+        */
     }
 
     private void setRandom()
     {
         obstacleDetectDistance = Random.Range(0.1f, 1); // 10cmから1mまでの間
-        carSpeed = Random.Range(0.1f, 2); // あとで計測
-        rotationSpeed = Random.Range(10, 90) * 1147.6333f; // 10°から90°の間
-        servoAngleDiff = Random.Range(10, 90); // 10°から90°の間
+        carSpeed = Random.Range(0.5f, 2); // あとで計測
+        rotationSpeed = Random.Range(20, 90) * 1147.6333f; // 20°から90°の間
+        servoAngleDiff = Random.Range(20, 90); // 20°から90°の間
     }
 
     private IEnumerator ObstacleAvoidance()
@@ -92,6 +108,7 @@ public class MainCarScript : MonoBehaviour
                     if (i == -1)
                     {
                         yield return StartCoroutine(CarMotionControl("right", 5));
+                        // 1/10くらいの確率でランダムな角度で曲がるのはどうか
                     }
                     else if (i == 0)
                     {
@@ -165,17 +182,17 @@ public class MainCarScript : MonoBehaviour
         }
     }
 
-    void setCarMesh()
+    void setCarMesh(float height, float width)
     {
         Mesh mesh = new Mesh();
 
         // 頂点を設定
         Vector3[] vertices = new Vector3[4]
         {
-            new Vector3(-0.1f, -0.15f, 0),
-            new Vector3(0.1f, -0.15f, 0),
-            new Vector3(-0.1f, 0.15f, 0),
-            new Vector3(0.1f, 0.15f, 0)
+            new Vector3(-width, -height, 0),
+            new Vector3(width, -height, 0),
+            new Vector3(-width, height, 0),
+            new Vector3(width, height, 0)
         };
         mesh.vertices = vertices;
 
