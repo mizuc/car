@@ -392,11 +392,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce5369c1e6f66c4459a4ae2170eddfcc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  timeScale: 1
+  timeScale: 100
   obstacleDetectDistance: 1
-  carSpeed: 2
-  rotationSpeed: 68858
+  carSpeed: 1
+  rotationSpeed: 6877.998
   servoAngleDiff: 60
+  servoAim: 
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0

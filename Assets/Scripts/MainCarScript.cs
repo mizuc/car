@@ -13,7 +13,8 @@ public class MainCarScript : MonoBehaviour
     // 乱数で決める変数
     public float obstacleDetectDistance = 1; // 1m
     public float carSpeed = 1; //1秒で1m
-    public float rotationSpeed = 60 * 1147.6333f; // 回転するスピード この値だとちょうど60度回る rotationSpeed:servoAngleDiff = 68858:60
+    //public float rotationSpeed = 60 * 1147.6333f; // 回転するスピード この値だとちょうど60度回る rotationSpeed:servoAngleDiff = 68858:60
+    public float rotationSpeed = 60 * 114.6333f;
     public float servoAngleDiff = 60;
 
     /*
@@ -29,6 +30,7 @@ public class MainCarScript : MonoBehaviour
     private float servoAngle = 0;
     private bool first_is = true;
     private bool isRunning = false;
+    public string servoAim;
     
 
     void Start()
@@ -51,10 +53,12 @@ public class MainCarScript : MonoBehaviour
 
     void FixedUpdate()
     {
+        ///*
         if (!isRunning) {
             StartCoroutine(CarMotionControl("right", 100));
             isRunning = true;
         }
+        //*/
         /*
         if (!isRunning)
         {
@@ -62,6 +66,7 @@ public class MainCarScript : MonoBehaviour
             StartCoroutine(ObstacleAvoidance());
         }
         */
+        
     }
 
     private void setRandom()
@@ -76,13 +81,34 @@ public class MainCarScript : MonoBehaviour
     {
         if (first_is)
         {
+            // Arduinoのコードを良く読むと、本体が50ms回転してから、入力を止めずに450ms、ServoMotorといっしょに回転してる
+            // 1. 50ms間本体回転、ループ終了
+            // 2. ループ開始、450ms間ServoMotor回転、本体回転
+            // 3. ServoMotor止まる 本体が他の動きで入力が上書きされる
+            switch (servoAim)
+            {
+                case "right":
+                    yield return StartCoroutine(CarMotionControl("right", 45));
+                    servoAim = "";
+                    break;
+                case "forward":
+                    yield return StartCoroutine(CarMotionControl("forward", 45));
+                    servoAim = "";
+                    break;
+                case "left":
+                    yield return StartCoroutine(CarMotionControl("left", 45));
+                    servoAim = "";
+                    break;
+                case "":
+                    yield return WaitForFixedFrames(45);
+                    break;
+            }
             servoAngle = 0f;
             sensorScript.setSensorRotation(servoAngle);
-            yield return WaitForFixedFrames(45); // 450ms待つ ServoMotorが回ってる時間
             first_is = false;
         }
 
-        float distance = GetDistance(servoAngle, obstacleDetectDistance);
+        float distance = GetDistance(obstacleDetectDistance, servoAngle);
         if (distance <= obstacleDetectDistance) // 近いなら
         {
             for (int i = -1; i <= 1; i++)
@@ -91,8 +117,9 @@ public class MainCarScript : MonoBehaviour
                 sensorScript.setSensorRotation(servoAngle); // sensorを回す
                 yield return WaitForFixedFrames(45); // 450ms待つ ServoMotorが回ってる時間
 
-                distance = GetDistance(servoAngle, obstacleDetectDistance);
+                distance = GetDistance(obstacleDetectDistance, servoAngle);
 
+                Debug.Log(distance);
                 if (distance <= obstacleDetectDistance) // 近いなら
                 {
                     yield return StartCoroutine(CarMotionControl("stop", 1));
@@ -108,15 +135,17 @@ public class MainCarScript : MonoBehaviour
                     if (i == -1)
                     {
                         yield return StartCoroutine(CarMotionControl("right", 5));
-                        // 1/10くらいの確率でランダムな角度で曲がるのはどうか
+                        servoAim = "right";
                     }
                     else if (i == 0)
                     {
                         yield return StartCoroutine(CarMotionControl("forward", 5));
+                        servoAim = "forward";
                     }
                     else if (i == 1)
                     {
                         yield return StartCoroutine(CarMotionControl("left", 5));
+                        servoAim = "left";
                     }
                     first_is = true;
                     break;
@@ -133,9 +162,14 @@ public class MainCarScript : MonoBehaviour
     float GetDistance(float distance, float dir)
     {
         int layerMask = ~LayerMask.GetMask("Ignore Raycast");
+
+        // 指定された方向(dir)に基づいてRayを放つ方向を計算
         Vector2 rayDirection = Quaternion.Euler(0, 0, dir) * sensorTransform.up;
+
+        // Raycastを発射して、衝突するオブジェクトを検出
         RaycastHit2D hit = Physics2D.Raycast(sensorTransform.position, rayDirection, Mathf.Infinity, layerMask);
 
+        // 衝突した場合は距離を返す。それ以外は無限大を返す。
         if (hit.collider != null)
         {
             return hit.distance;
@@ -155,10 +189,10 @@ public class MainCarScript : MonoBehaviour
                 rb.linearVelocity = -transform.up * carSpeed;
                 break;
             case "right":
-                rb.angularVelocity = rotationSpeed * Mathf.Deg2Rad;
+                rb.angularVelocity = -rotationSpeed * Mathf.Deg2Rad;
                 break;
             case "left":
-                rb.angularVelocity = -rotationSpeed * Mathf.Deg2Rad;
+                rb.angularVelocity = rotationSpeed * Mathf.Deg2Rad;
                 break;
             case "stop":
                 rb.linearVelocity = Vector2.zero;
