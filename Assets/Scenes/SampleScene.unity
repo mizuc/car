@@ -393,9 +393,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   timeScale: 100
-  obstacleDetectDistance: 1
-  carSpeed: 1
-  rotationSpeed: 6877.998
+  obstacleDetectDistance: 0.2
+  carSpeed: 150
+  rotationSpeed: 150
   servoAngleDiff: 60
   servoAim: 
 --- !u!1 &519420028

@@ -8,23 +8,25 @@ public class MainCarScript : MonoBehaviour
     private Transform sensorTransform; // sensorの座標
     private SensorScript sensorScript;
 
-    public float timeScale = 100f;
+    public float timeScale = 1f;
 
     // 乱数で決める変数
-    public float obstacleDetectDistance = 1; // 1m
-    public float carSpeed = 1; //1秒で1m
-    //public float rotationSpeed = 60 * 1147.6333f; // 回転するスピード この値だとちょうど60度回る rotationSpeed:servoAngleDiff = 68858:60
-    public float rotationSpeed = 60 * 114.6333f;
+    public float obstacleDetectDistance = 0.2f; // 20cm
+    public float carSpeed = 255;
+    public float rotationSpeed = 255; // 17.02
     public float servoAngleDiff = 60;
+
+    private float carSpeedCorrectionValue = 0.0032f;
+    private float rotationSpeedCorrectionValue = 104.988364323403f;
 
     /*
     forward
-    255:85
-    100:33.34
+    255:0.85    0.00319548872180451
+    100:0.3334  0.003334
 
     right
-    255:456.66
-    100:143
+    255:456.66  0.558402312442517
+    100:143     0.699300699300699
      */
 
     private float servoAngle = 0;
@@ -35,10 +37,15 @@ public class MainCarScript : MonoBehaviour
 
     void Start()
     {
+        // フレームレート・カメラ設定関係
         Time.fixedDeltaTime = 0.01f; // 1フレームを0.01秒とする
         Time.timeScale = timeScale; // 倍速
         Application.targetFrameRate = -1; // フレームレート制限を解除
         QualitySettings.vSyncCount = 0;   // V-Syncを無効化
+
+        // 補正値関係
+        carSpeed *= carSpeedCorrectionValue;
+        rotationSpeed *= rotationSpeedCorrectionValue;
 
         //setRandom();
 
@@ -53,19 +60,19 @@ public class MainCarScript : MonoBehaviour
 
     void FixedUpdate()
     {
-        ///*
+        /*
         if (!isRunning) {
             StartCoroutine(CarMotionControl("right", 100));
             isRunning = true;
         }
-        //*/
-        /*
+        */
+        ///*
         if (!isRunning)
         {
             isRunning = true;
             StartCoroutine(ObstacleAvoidance());
         }
-        */
+        //*/
         
     }
 
@@ -119,7 +126,6 @@ public class MainCarScript : MonoBehaviour
 
                 distance = GetDistance(obstacleDetectDistance, servoAngle);
 
-                Debug.Log(distance);
                 if (distance <= obstacleDetectDistance) // 近いなら
                 {
                     yield return StartCoroutine(CarMotionControl("stop", 1));
@@ -162,14 +168,8 @@ public class MainCarScript : MonoBehaviour
     float GetDistance(float distance, float dir)
     {
         int layerMask = ~LayerMask.GetMask("Ignore Raycast");
-
-        // 指定された方向(dir)に基づいてRayを放つ方向を計算
         Vector2 rayDirection = Quaternion.Euler(0, 0, dir) * sensorTransform.up;
-
-        // Raycastを発射して、衝突するオブジェクトを検出
         RaycastHit2D hit = Physics2D.Raycast(sensorTransform.position, rayDirection, Mathf.Infinity, layerMask);
-
-        // 衝突した場合は距離を返す。それ以外は無限大を返す。
         if (hit.collider != null)
         {
             return hit.distance;
