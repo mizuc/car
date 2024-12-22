@@ -4,20 +4,26 @@ using UnityEngine;
 
 public class MainCarScript : MonoBehaviour
 {
-    Rigidbody2D rb;
-    private Transform sensorTransform; // sensorの座標
+    private Rigidbody2D rb;
+    private Transform carTransform;
+    private Transform sensorTransform;
     private SensorScript sensorScript;
+    private GameObject prefabObj;
 
     public float timeScale = 1f;
 
     // 乱数で決める変数
     public float obstacleDetectDistance = 0.2f; // 20cm
-    public float carSpeed = 255;
-    public float rotationSpeed = 255; // 17.02
-    public float servoAngleDiff = 60;
+    public float carLinearSpeed = 150;
+    public float carTurningSpeed = 150;
+    public float servoRange = 60;
 
-    private float carSpeedCorrectionValue = 0.0032f;
-    private float rotationSpeedCorrectionValue = 104.988364323403f;
+    private float carLinearSpeedCorrectionValue = 0.0032f;
+    private float carLinearSpeedCorrected;
+    private float carTurningSpeedCorrectionValue = 104.988364323403f;
+    private float carTurningSpeedCorrected;
+    private int carStockCount = 0;
+    private Vector3 carTransformPosition = new Vector3();
 
     /*
     forward
@@ -44,18 +50,21 @@ public class MainCarScript : MonoBehaviour
         QualitySettings.vSyncCount = 0;   // V-Syncを無効化
 
         // 補正値関係
-        carSpeed *= carSpeedCorrectionValue;
-        rotationSpeed *= rotationSpeedCorrectionValue;
+        carLinearSpeedCorrected = carLinearSpeed * carLinearSpeedCorrectionValue;
+        carTurningSpeedCorrected = carTurningSpeed * carTurningSpeedCorrectionValue;
 
         //setRandom();
 
         rb = GetComponent<Rigidbody2D>();
-        rb.gravityScale = 0f; //重力を0にする
-        setCarMesh(0.23f/2, 0.155f/2); //車の見た目と当たり判定を定義
+        rb.gravityScale = 0f; // 重力を0にする
+        setCarMesh(0.115f, 0.0775f); // 車の見た目と当たり判定を定義 縦23cm 横15.5cm
+        carTransform = GetComponent<Transform>();
 
         sensorScript = GetComponentInChildren<SensorScript>();
         sensorScript.setSensorMesh(obstacleDetectDistance);
         sensorTransform = GetComponentInChildren<Transform>();
+
+        setPrefabRamdom();
     }
 
     void FixedUpdate()
@@ -76,16 +85,25 @@ public class MainCarScript : MonoBehaviour
         
     }
 
-    private void setRandom()
+    private void setValueRandom()
     {
-        obstacleDetectDistance = Random.Range(0.1f, 1); // 10cmから1mまでの間
-        carSpeed = Random.Range(0.5f, 2); // あとで計測
-        rotationSpeed = Random.Range(20, 90) * 1147.6333f; // 20°から90°の間
-        servoAngleDiff = Random.Range(20, 90); // 20°から90°の間
+        obstacleDetectDistance = Random.Range(0.1f, 1.0f); // 10cmから1mまでの間
+        carLinearSpeed = Random.Range(100, 255);
+        carTurningSpeed = Random.Range(100, 255);
+        servoRange = Random.Range(30, 90); // 30°から90°の間
     }
 
     private IEnumerator ObstacleAvoidance()
     {
+        if (100 < carStockCount)
+        {
+            transform.position = new Vector3(2.5f, -2.5f, 0);
+            transform.rotation = Quaternion.Euler(0, 0, Random.Range(0.0f, 360.0f));
+            carStockCount = 0;
+            Debug.Log("Reset");
+            setPrefabRamdom();
+        }
+
         if (first_is)
         {
             // Arduinoのコードを良く読むと、本体が50ms回転してから、入力を止めずに450ms、ServoMotorといっしょに回転してる
@@ -120,7 +138,7 @@ public class MainCarScript : MonoBehaviour
         {
             for (int i = -1; i <= 1; i++)
             {
-                servoAngle = servoAngleDiff * i; // -servoAngleDiff, 0, servoAngleDiff
+                servoAngle = servoRange * i; // -servoRange, 0, servoRange
                 sensorScript.setSensorRotation(servoAngle); // sensorを回す
                 yield return WaitForFixedFrames(45); // 450ms待つ ServoMotorが回ってる時間
 
@@ -133,11 +151,22 @@ public class MainCarScript : MonoBehaviour
                     {
                         yield return StartCoroutine(CarMotionControl("backward", 50));
                         yield return StartCoroutine(CarMotionControl("right", 5));
+                        servoAim = "right";
                         first_is = true;
                     }
                 }
                 else
                 {
+                    // 前回の車の位置と同じなら
+                    if(carTransformPosition == carTransform.position)
+                    {
+                        carStockCount += 10;
+                    }
+                    else // 位置が違うなら
+                    {
+                        carTransformPosition = carTransform.position;
+                    }
+
                     if (i == -1)
                     {
                         yield return StartCoroutine(CarMotionControl("right", 5));
@@ -160,6 +189,15 @@ public class MainCarScript : MonoBehaviour
         }
         else // 遠いなら 1フレーム前に進む
         {
+            // 前回の車の位置と同じなら
+            if (carTransformPosition == carTransform.position)
+            {
+                carStockCount++;
+            }
+            else // 位置が違うなら
+            {
+                carTransformPosition = carTransform.position;
+            }
             yield return StartCoroutine(CarMotionControl("forward", 1));
         }
         isRunning = false;
@@ -169,7 +207,7 @@ public class MainCarScript : MonoBehaviour
     {
         int layerMask = ~LayerMask.GetMask("Ignore Raycast");
         Vector2 rayDirection = Quaternion.Euler(0, 0, dir) * sensorTransform.up;
-        RaycastHit2D hit = Physics2D.Raycast(sensorTransform.position, rayDirection, Mathf.Infinity, layerMask);
+        RaycastHit2D hit = Physics2D.Raycast(sensorTransform.position, rayDirection, distance, layerMask);
         if (hit.collider != null)
         {
             return hit.distance;
@@ -183,16 +221,16 @@ public class MainCarScript : MonoBehaviour
         switch (direction)
         {
             case "forward":
-                rb.linearVelocity = transform.up * carSpeed;
+                rb.linearVelocity = transform.up * carLinearSpeedCorrected;
                 break;
             case "backward":
-                rb.linearVelocity = -transform.up * carSpeed;
+                rb.linearVelocity = -transform.up * carLinearSpeedCorrected;
                 break;
             case "right":
-                rb.angularVelocity = -rotationSpeed * Mathf.Deg2Rad;
+                rb.angularVelocity = -carTurningSpeedCorrected * Mathf.Deg2Rad;
                 break;
             case "left":
-                rb.angularVelocity = rotationSpeed * Mathf.Deg2Rad;
+                rb.angularVelocity = carTurningSpeedCorrected * Mathf.Deg2Rad;
                 break;
             case "stop":
                 rb.linearVelocity = Vector2.zero;
@@ -244,5 +282,48 @@ public class MainCarScript : MonoBehaviour
         carMaterial.color = Color.white;
 
         GetComponent<MeshRenderer>().material = carMaterial;
+    }
+
+    void generatePrefab(float x, float y)
+    {
+        prefabObj = (GameObject)Resources.Load("Object");
+
+        // ランダムな位置を生成
+        float randomX = Random.Range(x - 1, x + 1);
+        float randomY = Random.Range(y - 1, y + 1);
+        Vector3 randomPosition = new Vector3(randomX, randomY, 0);
+
+        // ランダムなZ軸回転角度を生成 (0 ~ 360度)
+        float randomZRotation = Random.Range(0.0f, 360.0f);
+        Quaternion randomRotation = Quaternion.Euler(0, 0, randomZRotation);
+
+        // オブジェクトを生成
+        Instantiate(prefabObj, randomPosition, randomRotation);
+    }
+
+    void setPrefabRamdom()
+    {
+        GameObject[] prefabs = GameObject.FindGameObjectsWithTag("Prefab");
+        foreach (GameObject prefab in prefabs)
+        {
+            Destroy(prefab);
+        }
+
+        Vector2[] prefabPositions = new Vector2[] {
+            new Vector2(0.0f, -2.0f),
+            new Vector2(0.0f, -1.0f),
+            new Vector2(-2.0f, 0.0f),
+            new Vector2(-1.0f, 0.0f),
+            new Vector2(0.0f, 0.0f),
+            new Vector2(1.0f, 0.0f),
+            new Vector2(2.0f, 0.0f),
+            new Vector2(0.0f, 1.0f),
+            new Vector2(0.0f, 2.0f),
+        };
+
+        foreach (var prefabPosition in prefabPositions)
+        {
+            generatePrefab(prefabPosition.x, prefabPosition.y);
+        }
     }
 }
