@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class MainCarScript : MonoBehaviour
@@ -8,22 +10,29 @@ public class MainCarScript : MonoBehaviour
     private Transform carTransform;
     private Transform sensorTransform;
     private SensorScript sensorScript;
-    private GameObject prefabObj;
-
-    public float timeScale = 1f;
+    private string filePath;
+    public float timeScale;
 
     // 乱数で決める変数
-    public float obstacleDetectDistance = 0.2f; // 20cm
-    public float carLinearSpeed = 150;
-    public float carTurningSpeed = 150;
-    public float servoRange = 60;
+    public float obstacleDetectDistance;
+    public float carLinearSpeed;
+    public float carTurningSpeed;
+    public float servoRange;
 
     private float carLinearSpeedCorrectionValue = 0.0032f;
     private float carLinearSpeedCorrected;
     private float carTurningSpeedCorrectionValue = 104.988364323403f;
     private float carTurningSpeedCorrected;
-    private int carStockCount = 0;
-    private Vector3 carTransformPosition = new Vector3();
+
+    private int carStockCount; // 車がストックしたときのカウント
+    private Vector3 carTransformPosition; // 車の位置
+    private float startTime; // スタートした時間
+    private float finishTime; // 終わった時間
+
+    private float servoAngle; // servoの向いてる向き
+    private bool first_is; // 何かのフラグ
+    private bool isRunning; // 多重のコルーチンを防ぐやつ
+    private string servoAim; // 向く向きを一時保存
 
     /*
     forward
@@ -35,15 +44,13 @@ public class MainCarScript : MonoBehaviour
     100:143     0.699300699300699
      */
 
-    private float servoAngle = 0;
-    private bool first_is = true;
-    private bool isRunning = false;
-    public string servoAim;
-    
-
     void Start()
     {
         // フレームレート・カメラ設定関係
+        foreach (Camera cam in Camera.allCameras)
+        {
+            cam.enabled = false; // カメラを無効化
+        }
         Time.fixedDeltaTime = 0.01f; // 1フレームを0.01秒とする
         Time.timeScale = timeScale; // 倍速
         Application.targetFrameRate = -1; // フレームレート制限を解除
@@ -53,8 +60,7 @@ public class MainCarScript : MonoBehaviour
         carLinearSpeedCorrected = carLinearSpeed * carLinearSpeedCorrectionValue;
         carTurningSpeedCorrected = carTurningSpeed * carTurningSpeedCorrectionValue;
 
-        //setRandom();
-
+        // 初期設定
         rb = GetComponent<Rigidbody2D>();
         rb.gravityScale = 0f; // 重力を0にする
         setCarMesh(0.115f, 0.0775f); // 車の見た目と当たり判定を定義 縦23cm 横15.5cm
@@ -64,7 +70,13 @@ public class MainCarScript : MonoBehaviour
         sensorScript.setSensorMesh(obstacleDetectDistance);
         sensorTransform = GetComponentInChildren<Transform>();
 
-        setPrefabRamdom();
+        filePath = Application.dataPath + "/data.csv";
+        if (!File.Exists(filePath))
+        {
+            File.WriteAllText(filePath, "obstacleDetectDistance,carLinearSpeed,carTurningSpeed,servoRange,finishTime\n");
+        }
+
+        Init();
     }
 
     void FixedUpdate()
@@ -84,6 +96,24 @@ public class MainCarScript : MonoBehaviour
         //*/
         
     }
+    private void Init()
+    {
+        first_is = true;
+        isRunning = false;
+        carStockCount = 0;
+        servoAngle = 0;
+        servoAim = "";
+        setTransformDefault();
+        setValueRandom();
+        setPrefabRamdom();
+        startTime = Time.time;
+    }
+
+    public void SaveLogData()
+    {
+        string newLine = $"{obstacleDetectDistance},{carLinearSpeed},{carTurningSpeed},{servoRange},{finishTime}\n";
+        File.AppendAllText(filePath, newLine); // データを追記
+    }
 
     private void setValueRandom()
     {
@@ -93,15 +123,29 @@ public class MainCarScript : MonoBehaviour
         servoRange = Random.Range(30, 90); // 30°から90°の間
     }
 
+    private void setTransformDefault()
+    {
+        transform.position = new Vector3(2.5f, -2.5f, 0);
+        transform.rotation = Quaternion.Euler(0, 0, Random.Range(0.0f, 90.0f));
+    }
+
     private IEnumerator ObstacleAvoidance()
     {
+        if (transform.position.x <= -2 && 2 <= transform.position.y)
+        {
+            finishTime = Time.time - startTime;
+            SaveLogData();
+            Init();
+            Debug.Log("Goal");
+            yield return null;
+        }
+
         if (100 < carStockCount)
         {
-            transform.position = new Vector3(2.5f, -2.5f, 0);
-            transform.rotation = Quaternion.Euler(0, 0, Random.Range(0.0f, 360.0f));
-            carStockCount = 0;
-            Debug.Log("Reset");
-            setPrefabRamdom();
+            finishTime = Time.time - startTime;
+            Init();
+            Debug.Log("Stack");
+            yield return null;
         }
 
         if (first_is)
@@ -286,18 +330,15 @@ public class MainCarScript : MonoBehaviour
 
     void generatePrefab(float x, float y)
     {
-        prefabObj = (GameObject)Resources.Load("Object");
+        GameObject prefabObj = (GameObject)Resources.Load("Object");
 
-        // ランダムな位置を生成
         float randomX = Random.Range(x - 1, x + 1);
         float randomY = Random.Range(y - 1, y + 1);
         Vector3 randomPosition = new Vector3(randomX, randomY, 0);
 
-        // ランダムなZ軸回転角度を生成 (0 ~ 360度)
         float randomZRotation = Random.Range(0.0f, 360.0f);
         Quaternion randomRotation = Quaternion.Euler(0, 0, randomZRotation);
 
-        // オブジェクトを生成
         Instantiate(prefabObj, randomPosition, randomRotation);
     }
 
@@ -311,13 +352,9 @@ public class MainCarScript : MonoBehaviour
 
         Vector2[] prefabPositions = new Vector2[] {
             new Vector2(0.0f, -2.0f),
-            new Vector2(0.0f, -1.0f),
             new Vector2(-2.0f, 0.0f),
-            new Vector2(-1.0f, 0.0f),
             new Vector2(0.0f, 0.0f),
-            new Vector2(1.0f, 0.0f),
             new Vector2(2.0f, 0.0f),
-            new Vector2(0.0f, 1.0f),
             new Vector2(0.0f, 2.0f),
         };
 

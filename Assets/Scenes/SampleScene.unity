@@ -397,7 +397,6 @@ MonoBehaviour:
   carLinearSpeed: 255
   carTurningSpeed: 150
   servoRange: 60
-  servoAim: 
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
