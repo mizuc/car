@@ -47,10 +47,12 @@ public class MainCarScript : MonoBehaviour
     void Start()
     {
         // フレームレート・カメラ設定関係
+        /*
         foreach (Camera cam in Camera.allCameras)
         {
             cam.enabled = false; // カメラを無効化
         }
+        */
         Time.fixedDeltaTime = 0.01f; // 1フレームを0.01秒とする
         Time.timeScale = timeScale; // 倍速
         Application.targetFrameRate = -1; // フレームレート制限を解除
@@ -63,11 +65,11 @@ public class MainCarScript : MonoBehaviour
         // 初期設定
         rb = GetComponent<Rigidbody2D>();
         rb.gravityScale = 0f; // 重力を0にする
-        setCarMesh(0.115f, 0.0775f); // 車の見た目と当たり判定を定義 縦23cm 横15.5cm
+        SetCarMesh(0.115f, 0.0775f); // 車の見た目と当たり判定を定義 縦23cm 横15.5cm
         carTransform = GetComponent<Transform>();
 
         sensorScript = GetComponentInChildren<SensorScript>();
-        sensorScript.setSensorMesh(obstacleDetectDistance);
+        sensorScript.SetSensorMesh(obstacleDetectDistance);
         sensorTransform = GetComponentInChildren<Transform>();
 
         filePath = Application.dataPath + "/data.csv";
@@ -93,9 +95,11 @@ public class MainCarScript : MonoBehaviour
             isRunning = true;
             StartCoroutine(ObstacleAvoidance());
         }
-        //*/
-        
+        //*/   
     }
+
+
+
     private void Init()
     {
         first_is = true;
@@ -103,19 +107,24 @@ public class MainCarScript : MonoBehaviour
         carStockCount = 0;
         servoAngle = 0;
         servoAim = "";
-        setTransformDefault();
-        setValueRandom();
-        setPrefabRamdom();
+        SetTransformDefault();
+        SetValueRandom();
+        SetPrefabRamdom();
+        sensorScript.SetSensorMesh(obstacleDetectDistance);
         startTime = Time.time;
     }
 
-    public void SaveLogData()
+
+
+    public void SaveLogData(float obstacleDetectDistance, float carLinearSpeed, float carTurningSpeed, float servoRange, float finishTime)
     {
         string newLine = $"{obstacleDetectDistance},{carLinearSpeed},{carTurningSpeed},{servoRange},{finishTime}\n";
         File.AppendAllText(filePath, newLine); // データを追記
     }
 
-    private void setValueRandom()
+
+
+    private void SetValueRandom()
     {
         obstacleDetectDistance = Random.Range(0.1f, 1.0f); // 10cmから1mまでの間
         carLinearSpeed = Random.Range(100, 255);
@@ -123,26 +132,36 @@ public class MainCarScript : MonoBehaviour
         servoRange = Random.Range(30, 90); // 30°から90°の間
     }
 
-    private void setTransformDefault()
+
+
+    private void SetTransformDefault()
     {
         transform.position = new Vector3(2.5f, -2.5f, 0);
         transform.rotation = Quaternion.Euler(0, 0, Random.Range(0.0f, 90.0f));
     }
 
+
+
     private IEnumerator ObstacleAvoidance()
     {
+        finishTime = Time.time - startTime;
+        if(1000 < finishTime)
+        {
+            Init();
+            Debug.Log("TimeOver");
+            yield return null;
+        }
+
         if (transform.position.x <= -2 && 2 <= transform.position.y)
         {
-            finishTime = Time.time - startTime;
-            SaveLogData();
+            SaveLogData(obstacleDetectDistance, carLinearSpeed, carTurningSpeed, servoRange, finishTime);
             Init();
             Debug.Log("Goal");
             yield return null;
         }
 
-        if (100 < carStockCount)
+        if (300 < carStockCount)
         {
-            finishTime = Time.time - startTime;
             Init();
             Debug.Log("Stack");
             yield return null;
@@ -173,7 +192,7 @@ public class MainCarScript : MonoBehaviour
                     break;
             }
             servoAngle = 0f;
-            sensorScript.setSensorRotation(servoAngle);
+            sensorScript.SetSensorRotation(servoAngle);
             first_is = false;
         }
 
@@ -183,7 +202,7 @@ public class MainCarScript : MonoBehaviour
             for (int i = -1; i <= 1; i++)
             {
                 servoAngle = servoRange * i; // -servoRange, 0, servoRange
-                sensorScript.setSensorRotation(servoAngle); // sensorを回す
+                sensorScript.SetSensorRotation(servoAngle); // sensorを回す
                 yield return WaitForFixedFrames(45); // 450ms待つ ServoMotorが回ってる時間
 
                 distance = GetDistance(obstacleDetectDistance, servoAngle);
@@ -247,6 +266,8 @@ public class MainCarScript : MonoBehaviour
         isRunning = false;
     }
 
+
+
     float GetDistance(float distance, float dir)
     {
         int layerMask = ~LayerMask.GetMask("Ignore Raycast");
@@ -258,6 +279,8 @@ public class MainCarScript : MonoBehaviour
         }
         return Mathf.Infinity;
     }
+
+
 
     IEnumerator CarMotionControl(string direction, int frameCount)
     {
@@ -290,6 +313,8 @@ public class MainCarScript : MonoBehaviour
         rb.angularVelocity = 0f;
     }
 
+
+
     IEnumerator WaitForFixedFrames(int frameCount)
     {
         for (int i = 0; i < frameCount; i++)
@@ -298,7 +323,9 @@ public class MainCarScript : MonoBehaviour
         }
     }
 
-    void setCarMesh(float height, float width)
+
+
+    void SetCarMesh(float height, float width)
     {
         Mesh mesh = new Mesh();
 
@@ -328,7 +355,9 @@ public class MainCarScript : MonoBehaviour
         GetComponent<MeshRenderer>().material = carMaterial;
     }
 
-    void generatePrefab(float x, float y)
+
+
+    void GeneratePrefab(float x, float y)
     {
         GameObject prefabObj = (GameObject)Resources.Load("Object");
 
@@ -342,7 +371,9 @@ public class MainCarScript : MonoBehaviour
         Instantiate(prefabObj, randomPosition, randomRotation);
     }
 
-    void setPrefabRamdom()
+
+
+    void SetPrefabRamdom()
     {
         GameObject[] prefabs = GameObject.FindGameObjectsWithTag("Prefab");
         foreach (GameObject prefab in prefabs)
@@ -360,7 +391,7 @@ public class MainCarScript : MonoBehaviour
 
         foreach (var prefabPosition in prefabPositions)
         {
-            generatePrefab(prefabPosition.x, prefabPosition.y);
+            GeneratePrefab(prefabPosition.x, prefabPosition.y);
         }
     }
 }

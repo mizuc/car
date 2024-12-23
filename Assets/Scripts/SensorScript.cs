@@ -1,7 +1,7 @@
 using UnityEngine;
 
 public class SensorScript : MonoBehaviour
-{    public void setSensorMesh(float distance)
+{    public void SetSensorMesh(float distance)
     {
         Mesh mesh = new Mesh();
 
@@ -31,7 +31,7 @@ public class SensorScript : MonoBehaviour
         GetComponent<MeshRenderer>().material = sensorMaterial;
     }
 
-    public void setSensorRotation(float angle)
+    public void SetSensorRotation(float angle)
     {
         transform.localRotation = Quaternion.Euler(0, 0, angle);
     }
