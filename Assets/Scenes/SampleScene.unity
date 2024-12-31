@@ -392,11 +392,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce5369c1e6f66c4459a4ae2170eddfcc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  timeScale: 100
-  obstacleDetectDistance: 0.4
-  carLinearSpeed: 255
-  carTurningSpeed: 150
-  servoRange: 60
+  timeScale: 0
+  obstacleDetectDistance: 0
+  carLinearSpeed: 0
+  carTurningSpeed: 0
+  servoRange: 0
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -423,7 +423,7 @@ Camera:
   m_GameObject: {fileID: 519420028}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 1
   m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -450,16 +450,16 @@ Camera:
   field of view: 60
   orthographic: 1
   orthographic size: 3.2
-  m_Depth: -1
+  m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
-  m_TargetEye: 0
-  m_HDR: 0
-  m_AllowMSAA: 0
+  m_TargetEye: 3
+  m_HDR: 1
+  m_AllowMSAA: 1
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 0

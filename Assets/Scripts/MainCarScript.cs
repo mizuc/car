@@ -35,12 +35,12 @@ public class MainCarScript : MonoBehaviour
     void Start()
     {
         // フレームレート・カメラ設定関係
-        /*
+        ///*
         foreach (Camera cam in Camera.allCameras)
         {
             cam.enabled = false; // カメラを無効化
         }
-        */
+        //*/
         Time.fixedDeltaTime = 0.01f; // 1フレームを0.01秒とする
         Time.timeScale = timeScale = 100; // 倍速
         Application.targetFrameRate = -1; // フレームレート制限を解除
@@ -56,7 +56,8 @@ public class MainCarScript : MonoBehaviour
         sensorScript.SetSensorMesh(obstacleDetectDistance);
         sensorTransform = GetComponentInChildren<Transform>();
 
-        filePath = Application.persistentDataPath + "/data.csv";
+        //filePath = Application.persistentDataPath + "/data.csv";
+        filePath = Application.dataPath + "/data.csv";
         if (!File.Exists(filePath))
         {
             File.WriteAllText(filePath, "obstacleDetectDistance,carLinearSpeed,carTurningSpeed,servoRange,finishTime\n");
@@ -375,11 +376,11 @@ public class MainCarScript : MonoBehaviour
         }
 
         Vector2[] prefabPositions = new Vector2[] {
-            new Vector2(0.0f, -2.0f),
-            new Vector2(-2.0f, 0.0f),
+            new Vector2(0.0f, -1.5f),
+            new Vector2(-1.5f, 0.0f),
             new Vector2(0.0f, 0.0f),
-            new Vector2(2.0f, 0.0f),
-            new Vector2(0.0f, 2.0f),
+            new Vector2(1.5f, 0.0f),
+            new Vector2(0.0f, 1.5f),
         };
 
         foreach (var prefabPosition in prefabPositions)
