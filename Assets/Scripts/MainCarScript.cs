@@ -19,9 +19,7 @@ public class MainCarScript : MonoBehaviour
     public float carTurningSpeed;
     public float servoRange;
 
-    private float carLinearSpeedCorrectionValue = 0.0032f;
     private float carLinearSpeedCorrected;
-    private float carTurningSpeedCorrectionValue = 104.988364323403f;
     private float carTurningSpeedCorrected;
 
     private int carStockCount; // 車がストックしたときのカウント
@@ -34,16 +32,6 @@ public class MainCarScript : MonoBehaviour
     private bool isRunning; // 多重のコルーチンを防ぐやつ
     private string servoAim; // 向く向きを一時保存
 
-    /*
-    forward
-    255:0.85    0.00319548872180451
-    100:0.3334  0.003334
-
-    right
-    255:456.66  0.558402312442517
-    100:143     0.699300699300699
-     */
-
     void Start()
     {
         // フレームレート・カメラ設定関係
@@ -54,13 +42,9 @@ public class MainCarScript : MonoBehaviour
         }
         */
         Time.fixedDeltaTime = 0.01f; // 1フレームを0.01秒とする
-        Time.timeScale = timeScale; // 倍速
+        Time.timeScale = timeScale = 100; // 倍速
         Application.targetFrameRate = -1; // フレームレート制限を解除
         QualitySettings.vSyncCount = 0;   // V-Syncを無効化
-
-        // 補正値関係
-        carLinearSpeedCorrected = carLinearSpeed * carLinearSpeedCorrectionValue;
-        carTurningSpeedCorrected = carTurningSpeed * carTurningSpeedCorrectionValue;
 
         // 初期設定
         rb = GetComponent<Rigidbody2D>();
@@ -72,7 +56,7 @@ public class MainCarScript : MonoBehaviour
         sensorScript.SetSensorMesh(obstacleDetectDistance);
         sensorTransform = GetComponentInChildren<Transform>();
 
-        filePath = Application.dataPath + "/data.csv";
+        filePath = Application.persistentDataPath + "/data.csv";
         if (!File.Exists(filePath))
         {
             File.WriteAllText(filePath, "obstacleDetectDistance,carLinearSpeed,carTurningSpeed,servoRange,finishTime\n");
@@ -81,26 +65,20 @@ public class MainCarScript : MonoBehaviour
         Init();
     }
 
+
+
     void FixedUpdate()
     {
-        /*
-        if (!isRunning) {
-            StartCoroutine(CarMotionControl("right", 100));
-            isRunning = true;
-        }
-        */
-        ///*
         if (!isRunning)
         {
             isRunning = true;
             StartCoroutine(ObstacleAvoidance());
         }
-        //*/   
     }
 
 
 
-    private void Init()
+    void Init()
     {
         first_is = true;
         isRunning = false;
@@ -124,17 +102,32 @@ public class MainCarScript : MonoBehaviour
 
 
 
-    private void SetValueRandom()
+    void SetValueRandom()
     {
         obstacleDetectDistance = Random.Range(0.1f, 1.0f); // 10cmから1mまでの間
+
         carLinearSpeed = Random.Range(100, 255);
+        carLinearSpeedCorrected = CorrectCarLinearSpeed(carLinearSpeed);
+
         carTurningSpeed = Random.Range(100, 255);
+        carTurningSpeedCorrected = CorrectCarTurningSpeed(carTurningSpeed);
+
         servoRange = Random.Range(30, 90); // 30°から90°の間
+    }
+
+    float CorrectCarLinearSpeed(float carLinearSpeed)
+    {
+        return 0.0035f * carLinearSpeed - 0.0329f;
+    }
+
+    float CorrectCarTurningSpeed(float carTurningSpeed)
+    {
+        return (2.1227f * carTurningSpeed - 87.71f) * 58.754412801373f;
     }
 
 
 
-    private void SetTransformDefault()
+    void SetTransformDefault()
     {
         transform.position = new Vector3(2.5f, -2.5f, 0);
         transform.rotation = Quaternion.Euler(0, 0, Random.Range(0.0f, 90.0f));
@@ -142,7 +135,7 @@ public class MainCarScript : MonoBehaviour
 
 
 
-    private IEnumerator ObstacleAvoidance()
+    IEnumerator ObstacleAvoidance()
     {
         finishTime = Time.time - startTime;
         if(1000 < finishTime)
