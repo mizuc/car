@@ -57,7 +57,7 @@ public class MainCarScript : MonoBehaviour
         sensorTransform = GetComponentInChildren<Transform>();
 
         //filePath = Application.persistentDataPath + "/data.csv";
-        filePath = Application.dataPath + "/data.csv";
+        filePath = Application.dataPath + "/data2.csv";
         if (!File.Exists(filePath))
         {
             File.WriteAllText(filePath, "obstacleDetectDistance,carLinearSpeed,carTurningSpeed,servoRange,finishTime\n");
